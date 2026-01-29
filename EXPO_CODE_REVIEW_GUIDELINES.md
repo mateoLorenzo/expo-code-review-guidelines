@@ -508,19 +508,30 @@ const { width, height } = useWindowDimensions();
 <View style={{ borderRadius: 12, borderCurve: 'continuous' }} />
 ```
 
-### 7.5 Inline Styles Preferred
+### 7.5 Always Use StyleSheet.create
 
-**What:** Use inline styles for one-time use, StyleSheet.create only when reusing styles.
+**What:** Always define styles in a StyleSheet.create object instead of inline styles.
+
+**Why:** Ensures consistency across the codebase, keeps JSX clean and focused on structure, and  
+ eliminates debates in code review about when to use inline vs extracted styles.
 
 ```tsx
-// GOOD for single use
-<View style={{ flex: 1, padding: 16 }} />;
+// BAD - Inline styles clutter the JSX
+<View style={{ flex: 1, padding: 16, backgroundColor: '#fff' }}>
+  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
+    Title
+  </Text>
+</View>
 
-// GOOD for reusable styles
+// GOOD - Styles separated, JSX stays clean
+<View style={styles.container}>
+  <Text style={styles.title}>Title</Text>
+</View>
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 18, fontWeight: 'bold', color: '#333' },
 });
-// Used in multiple places
 ```
 
 ### 7.6 Flexbox Over Absolute Positioning
