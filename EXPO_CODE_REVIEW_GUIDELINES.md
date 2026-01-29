@@ -508,30 +508,34 @@ const { width, height } = useWindowDimensions();
 <View style={{ borderRadius: 12, borderCurve: 'continuous' }} />
 ```
 
-### 7.5 Always Use StyleSheet.create
+### 7.5 Use StyleSheet.create for Static Styles
 
-**What:** Always define styles in a StyleSheet.create object instead of inline styles.
+**What:** Define static styles in StyleSheet.create. Inline styles are only acceptable for dynamic values computed at runtime.
 
-**Why:** Ensures consistency across the codebase, keeps JSX clean and focused on structure, and  
- eliminates debates in code review about when to use inline vs extracted styles.
+**Why:** Keeps JSX clean and focused on structure. Static values in inline styles add noise and inconsistency. Dynamic values (from props, hooks, or calculations) are acceptable inline since they can't be defined statically.
 
 ```tsx
-// BAD - Inline styles clutter the JSX
+// BAD - Static values inline
 <View style={{ flex: 1, padding: 16, backgroundColor: '#fff' }}>
-  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
-    Title
-  </Text>
+  <Text style={{ fontSize: 18, marginTop: 20 }}>Title</Text>
 </View>
 
-// GOOD - Styles separated, JSX stays clean
+// GOOD - Static styles extracted
 <View style={styles.container}>
   <Text style={styles.title}>Title</Text>
 </View>
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  title: { fontSize: 18, marginTop: 20 },
 });
+
+// GOOD - Dynamic values inline are acceptable
+const { top } = useSafeAreaInsets();
+
+<View style={[styles.container, { paddingTop: top }]}>
+  <Text style={{ opacity: isVisible ? 1 : 0 }}>Title</Text>
+</View>
 ```
 
 ### 7.6 Flexbox Over Absolute Positioning
