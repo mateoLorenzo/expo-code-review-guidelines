@@ -226,41 +226,28 @@ class GoodExample {
 
 ## 4. Networking & Data Fetching
 
-### 4.1 Prefer fetch over axios
+### 4.1 Always Check response.ok (fetch only)
 
-**What:** Use the native fetch API instead of axios.
+**What:** When using fetch, always check response.ok before parsing JSON.
 
-**Why:** fetch is built-in, has a smaller footprint, and Expo provides optimized networking.
-
-```tsx
-// BAD
-import axios from "axios";
-const response = await axios.get(url);
-
-// GOOD
-const response = await fetch(url);
-const data = await response.json();
-```
-
-### 4.2 Always Check response.ok
-
-**What:** Always check response.ok before parsing JSON in fetch requests.
-
-**Why:** fetch doesn't throw on HTTP errors (4xx, 5xx). Without checking, you'll try to parse error pages as JSON.
+**Why:** fetch doesn't throw on HTTP errors (4xx, 5xx). Without checking, you'll try to parse error pages as JSON. This doesn't apply to axios, which throws automatically on HTTP errors.
 
 ```tsx
-// BAD - No error handling
+// BAD - No error handling with fetch
 const data = await fetch(url).then((r) => r.json());
 
-// GOOD - Proper error handling
+// GOOD - Proper error handling with fetch
 const response = await fetch(url);
 if (!response.ok) {
   throw new Error(`HTTP error! status: ${response.status}`);
 }
 const data = await response.json();
+
+// axios throws automatically, so this is fine
+const { data } = await axios.get(url);
 ```
 
-### 4.3 Use React Query for Data Management
+### 4.2 Use React Query for Data Management
 
 **What:** Use TanStack Query (React Query) for server state management.
 
@@ -286,7 +273,7 @@ const { data, isLoading, error } = useQuery({
 });
 ```
 
-### 4.4 Request Cancellation
+### 4.3 Request Cancellation
 
 **What:** Cancel requests on component unmount using AbortController.
 
@@ -307,7 +294,7 @@ useEffect(() => {
 }, [url]);
 ```
 
-### 4.5 Environment Variables
+### 4.4 Environment Variables
 
 **What:** Use EXPO_PUBLIC_ prefix for client-side environment variables.
 
@@ -1290,7 +1277,7 @@ import { View } from 'react-native';
 | Video | expo-video | expo-av |
 | Storage (general) | react-native-mmkv | AsyncStorage |
 | Storage (sensitive) | expo-secure-store | MMKV, AsyncStorage |
-| Networking | fetch, React Query | axios |
+| Networking | React Query | - |
 | Animations | react-native-reanimated | Animated from RN |
 | Lists | @shopify/flash-list | ScrollView + map |
 | Safe Area | react-native-safe-area-context | SafeAreaView from RN |
