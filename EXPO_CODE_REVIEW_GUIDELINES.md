@@ -288,32 +288,6 @@ import * as SecureStore from "expo-secure-store";
 await SecureStore.setItemAsync("token", token);
 ```
 
-### 5.2 Token Refresh Pattern
-
-**What:** Implement proper token refresh with race condition handling.
-
-```tsx
-let isRefreshing = false;
-let refreshPromise: Promise<string> | null = null;
-
-const getValidToken = async (): Promise<string> => {
-  const token = await SecureStore.getItemAsync("token");
-
-  if (!token || isTokenExpired(token)) {
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshPromise = refreshToken().finally(() => {
-        isRefreshing = false;
-        refreshPromise = null;
-      });
-    }
-    return refreshPromise!;
-  }
-
-  return token;
-};
-```
-
 ---
 
 ## 6. Navigation & Routing
@@ -343,7 +317,40 @@ src/
   types/
 ```
 
-### 6.2 Always Use \_layout.tsx for Stacks
+### 6.2 Screen Content Organization
+
+**What:** Route files in `/app` should only import and export screens. The actual screen content lives in `/src/screens/`.
+
+**Why:** Keeps the `/app` directory focused on routing structure. Screen logic, styles, and related components stay organized in `/src/screens/`, making them easier to test and maintain.
+
+```
+// Route file (app/user-profile.tsx)
+export { default } from '@/screens/user-profile';
+
+// Screen content (src/screens/user-profile/index.tsx)
+export default function UserProfileScreen() {
+  return (
+    // Screen implementation
+  );
+}
+```
+
+```
+// Project structure
+app/
+  _layout.tsx
+  index.tsx              <- exports from @/screens/home
+  user-profile.tsx       <- exports from @/screens/user-profile
+src/
+  screens/
+    home/
+      index.tsx          <- actual screen content
+    user-profile/
+      index.tsx          <- actual screen content
+      components/        <- screen-specific components (optional)
+```
+
+### 6.3 Always Use \_layout.tsx for Stacks
 
 **What:** Define navigation stacks in \_layout.tsx files, not inline.
 
@@ -360,38 +367,18 @@ export default function Layout() {
 }
 ```
 
-### 6.3 Use Native Navigation Titles
+### 6.4 Use Link with asChild for Navigation
 
-**What:** Use Stack.Screen options title instead of custom Text elements for page titles.
-
-**Why:** Native navigation titles integrate with the system, support large titles, and handle safe areas automatically.
+**What:** Use Link from expo-router with asChild to wrap Pressable components.
 
 ```tsx
-// BAD - Custom title
-<View>
-  <Text style={styles.pageTitle}>Home</Text>
-</View>
+import { Link } from "expo-router";
 
-// GOOD - Native title
-<Stack.Screen options={{ title: 'Home' }} />
-```
-
-### 6.4 Use Link for Declarative Navigation
-
-**What:** Use Link from expo-router for declarative navigation in JSX.
-
-```tsx
-import { Link } from 'expo-router';
-
-// Navigation
-<Link href="/settings">Settings</Link>
-
-// With custom component
 <Link href="/profile" asChild>
   <Pressable>
     <Text>Profile</Text>
   </Pressable>
-</Link>
+</Link>;
 ```
 
 ### 6.5 Use useRouter for Programmatic Navigation
@@ -432,43 +419,6 @@ function MyComponent() {
 ### 6.6 Ensure Root Route Exists
 
 **What:** Always have a route that matches "/" so the app is never blank.
-
-### 6.7 Android Back Gesture (Android 16+)
-
-**What:** Android 16 requires predictive back gesture support. Expo Router handles this automatically for standard navigation.
-
-**When to use BackHandler:** Only when you need to intercept back navigation (e.g., confirm exit with unsaved changes).
-
-```tsx
-import { useEffect } from 'react';
-import { BackHandler, Alert } from 'react-native';
-
-function FormScreen() {
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (hasUnsavedChanges) {
-        Alert.alert(
-          'Unsaved changes',
-          'Are you sure you want to leave?',
-          [
-            { text: 'Stay', style: 'cancel' },
-            { text: 'Leave', onPress: () => router.back() }
-          ]
-        );
-        return true; // Prevents default back
-      }
-      return false; // Allows normal back
-    });
-
-    return () => handler.remove();
-  }, [hasUnsavedChanges]);
-
-  return (/* ... */);
-}
-```
 
 ---
 
@@ -561,46 +511,11 @@ const { width, height } = Dimensions.get("window");
 const { width, height } = useWindowDimensions();
 ```
 
-### 7.3 Modern Shadow Syntax
+### 7.3 Use StyleSheet.create for Static Styles
 
-**What:** Use CSS boxShadow style instead of legacy React Native shadow props or elevation.
+**What:** Define static styles in StyleSheet.create. Inline styles are acceptable for dynamic values computed at runtime.
 
-**Why:** boxShadow is the modern, cross-platform approach and supports more features including inset shadows.
-
-```tsx
-// BAD - Legacy shadow props
-<View style={{
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.2,
-  elevation: 2
-}} />
-
-// GOOD - Modern boxShadow
-<View style={{ boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }} />
-```
-
-**Note:** boxShadow works on both iOS and Android with New Architecture. For pixel-perfect consistency across platforms, test on both and consider platform-specific adjustments if needed.
-
-### 7.4 Continuous Border Curves
-
-**What:** Use borderCurve: 'continuous' for rounded corners (except capsule shapes).
-
-**Why:** Continuous border curves provide smoother, more natural-looking corners following Apple's design guidelines.
-
-```tsx
-// Standard rounded corners
-<View style={{ borderRadius: 12 }} />
-
-// Better - Continuous curves
-<View style={{ borderRadius: 12, borderCurve: 'continuous' }} />
-```
-
-### 7.5 Use StyleSheet.create for Static Styles
-
-**What:** Define static styles in StyleSheet.create. Inline styles are only acceptable for dynamic values computed at runtime.
-
-**Why:** Keeps JSX clean and focused on structure. Static values in inline styles add noise and inconsistency. Dynamic values (from props, hooks, or calculations) are acceptable inline since they can't be defined statically.
+**Why:** Inline styles are not bad per se, but extracting static styles to StyleSheet.create improves consistency and keeps the codebase clean across the entire app. Dynamic values (from props, hooks, or calculations) are fine inline since they can't be defined statically.
 
 ```tsx
 // BAD - Static values inline
@@ -626,7 +541,7 @@ const insets = useSafeAreaInsets();
 </View>
 ```
 
-### 7.6 Flexbox Over Absolute Positioning
+### 7.4 Flexbox Over Absolute Positioning
 
 **What:** Use flexbox for layouts, prefer gap over margin/padding for spacing.
 
@@ -644,17 +559,7 @@ const insets = useSafeAreaInsets();
 </View>
 ```
 
-### 7.7 Tabular Numbers for Counters
-
-**What:** Use fontVariant: 'tabular-nums' for numbers that change frequently.
-
-**Why:** Prevents layout shifts when numbers change.
-
-```tsx
-<Text style={{ fontVariant: ["tabular-nums"] }}>{count}</Text>
-```
-
-### 7.8 Selectable Text for Important Data
+### 7.5 Selectable Text for Important Data
 
 **What:** Add the selectable prop to Text elements displaying important data or error messages.
 
@@ -667,22 +572,7 @@ const insets = useSafeAreaInsets();
 
 ## 8. Components & Architecture
 
-### 8.1 Platform Detection
-
-**What:** Use process.env.EXPO_OS instead of Platform.OS.
-
-**Why:** EXPO_OS enables better tree-shaking, removing platform-specific code from bundles.
-
-```tsx
-// BAD
-import { Platform } from 'react-native';
-if (Platform.OS === 'ios') { ... }
-
-// GOOD
-if (process.env.EXPO_OS === 'ios') { ... }
-```
-
-### 8.2 Use expo-image
+### 8.1 Use expo-image
 
 **What:** Use expo-image Image component instead of React Native's Image.
 
@@ -696,7 +586,7 @@ import { Image } from "react-native";
 import { Image } from "expo-image";
 ```
 
-### 8.3 Use Modern Context API
+### 8.2 Use Modern Context API
 
 **What:** Use React.use() instead of React.useContext() (React 19+).
 
@@ -710,7 +600,7 @@ const theme = React.useContext(ThemeContext);
 const theme = React.use(ThemeContext);
 ```
 
-### 8.4 Never Use Deprecated Modules
+### 8.3 Never Use Deprecated Modules
 
 **What:** Never use deprecated React Native modules.
 
@@ -1161,22 +1051,25 @@ function CustomAnimation() {
 
 ### 12.1 File Naming
 
-**What:** Use kebab-case for all file names.
+**What:** Use different naming conventions for routes and components:
+- **Routes** (in `/app`): kebab-case → `user-profile.tsx`
+- **Components** (in `/src/components`): PascalCase → `UserProfile.tsx`
 
-**Why:** This is the Expo standard convention. Consistency within the project is what matters most.
+**Why:** Routes map to URLs which use kebab-case. Components use PascalCase to match the exported component name (React convention).
 
 ```
-// BAD
-CommentCard.tsx
-commentCard.tsx
-comment_card.tsx
+// Routes (app/)
+app/
+  user-profile.tsx      ✓ kebab-case
+  settings.tsx          ✓ kebab-case
+  _layout.tsx           ✓ kebab-case
 
-// GOOD
-comment-card.tsx
-user-profile.tsx
+// Components (src/components/)
+src/components/
+  UserProfile.tsx       ✓ PascalCase
+  CommentCard.tsx       ✓ PascalCase
+  Button.tsx            ✓ PascalCase
 ```
-
-**Note:** Existing projects using PascalCase for components (Button.tsx) should maintain consistency with their established convention.
 
 ### 12.2 Path Aliases
 
@@ -1202,24 +1095,7 @@ import { Button } from "../../../components/Button";
 import { Button } from "@/components/Button";
 ```
 
-### 12.3 No Intrinsic Elements
-
-**What:** Never use intrinsic HTML elements like 'img' or 'div' unless in a webview or Expo DOM component.
-
-```tsx
-// BAD
-<img src={url} />
-<div>...</div>
-
-// GOOD
-import { Image } from 'expo-image';
-import { View } from 'react-native';
-
-<Image source={{ uri: url }} />
-<View>...</View>
-```
-
-### 12.4 Escape Strings Properly
+### 12.3 Escape Strings Properly
 
 **What:** Be cautious of unterminated strings. Ensure nested backticks are escaped correctly.
 
@@ -1240,7 +1116,7 @@ import { View } from 'react-native';
 | Storage (sensitive)    | expo-secure-store              | MMKV, AsyncStorage   |
 | Networking             | React Query                    | -                    |
 | Animations             | react-native-reanimated        | Animated from RN     |
-| Lists                  | @shopify/flash-list            | ScrollView + map     |
+| Lists                  | @shopify/flash-list            | FlatList, ScrollView + map |
 | Safe Area              | react-native-safe-area-context | SafeAreaView from RN |
 
 **Note on Icons:** `expo-symbols` provides native SF Symbols on iOS only. For cross-platform apps, use `@expo/vector-icons` or combine both with platform checks.
@@ -1271,4 +1147,4 @@ import { View } from 'react-native';
 
 ---
 
-_Sources: [expo/skills](https://github.com/expo/skills), [callstackincubator/agent-skills](https://github.com/callstackincubator/agent-skills)_
+_Sources: [Expo Docs](https://docs.expo.dev/), [Expo YouTube](https://www.youtube.com/@ExpoDevelopers), [Code with Beto](https://www.youtube.com/@codewithbeto), [expo/skills](https://github.com/expo/skills), [callstackincubator/agent-skills](https://github.com/callstackincubator/agent-skills)_
