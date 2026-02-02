@@ -27,11 +27,11 @@
 
 ## 1. Performance - Lists & Rendering
 
-### 1.1 Use FlashList/FlatList for Lists
+### 1.1 Use FlashList for Lists
 
-**What:** Use FlashList or FlatList instead of ScrollView with .map() for lists with more than 10-20 items.
+**What:** Use FlashList instead of ScrollView with .map() for lists with more than 10-20 items.
 
-**Why:** ScrollView renders ALL items at once, causing freezes, FPS drops to 0, and high memory usage. Virtualized lists only render visible items.
+**Why:** ScrollView renders ALL items at once, causing freezes, FPS drops to 0, and high memory usage. FlashList only renders visible items and is more performant than FlatList.
 
 ```tsx
 // BAD - Renders all items at once, causes freezes
@@ -51,8 +51,7 @@
 | Scenario | Recommendation |
 |----------|---------------|
 | < 20 static items | ScrollView OK |
-| 20-100 items | FlatList minimum |
-| > 100 items | FlashList |
+| > 20 items | FlashList |
 | Complex item layouts | FlashList with `getItemType` |
 
 ### 1.2 Proper keyExtractor
@@ -77,12 +76,12 @@ keyExtractor={(item) => item.id}
 
 ```tsx
 // BAD - Inline function recreated every render
-<FlatList data={items} renderItem={({ item }) => <Item {...item} />} />;
+<FlashList data={items} renderItem={({ item }) => <Item {...item} />} />;
 
 // GOOD - Stable function reference
 const renderItem = useCallback(({ item }) => <Item {...item} />, []);
 
-<FlatList data={items} renderItem={renderItem} />;
+<FlashList data={items} renderItem={renderItem} />;
 ```
 
 ### 1.4 React Compiler (Expo SDK 52+)
@@ -1288,7 +1287,7 @@ import { View } from 'react-native';
 
 ### Before Opening a PR
 
-- [ ] Lists with >20 items use FlashList/FlatList
+- [ ] Lists with >20 items use FlashList
 - [ ] No barrel imports (import directly from source)
 - [ ] All useEffect have cleanup functions for subscriptions/timers
 - [ ] Tokens stored in SecureStore, not MMKV or AsyncStorage
