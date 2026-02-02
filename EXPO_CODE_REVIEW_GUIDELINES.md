@@ -3,6 +3,10 @@
 > Code review standards for React Native + Expo projects.
 > Based on [expo/skills](https://github.com/expo/skills), [callstackincubator/agent-skills](https://github.com/callstackincubator/agent-skills), and Callstack's "Ultimate Guide to React Native Optimization".
 
+**Target versions:** Expo SDK 54 | React Native 0.81 | React 19.1.0
+
+> ⚠️ **SDK 54 is the last version supporting Legacy Architecture.** Starting with SDK 55, all apps must use New Architecture. Plan your migration accordingly.
+
 ---
 
 ## Table of Contents
@@ -17,8 +21,9 @@
 8. [Components & Architecture](#8-components--architecture)
 9. [Animations](#9-animations)
 10. [Storage](#10-storage)
-11. [Code Style & Conventions](#11-code-style--conventions)
-12. [Library Preferences](#12-library-preferences)
+11. [Accessibility](#11-accessibility)
+12. [Code Style & Conventions](#12-code-style--conventions)
+13. [Library Preferences](#13-library-preferences)
 
 ---
 
@@ -84,9 +89,9 @@ const renderItem = useCallback(({ item }) => <Item {...item} />, []);
 
 ### 1.4 React Compiler (Expo SDK 52+)
 
-**What:** Enable React Compiler for automatic memoization instead of manual memo/useMemo/useCallback.
+**What:** Enable React Compiler v1.0 for automatic memoization instead of manual memo/useMemo/useCallback.
 
-**Why:** Eliminates boilerplate and ensures consistent optimization across the codebase.
+**Why:** React Compiler is now production-ready (v1.0). It eliminates boilerplate and ensures consistent optimization across the codebase. Manual memoization becomes optional when enabled.
 
 ```json
 // app.json
@@ -304,9 +309,9 @@ useEffect(() => {
 
 ### 4.5 Environment Variables
 
-**What:** Use EXPO*PUBLIC* prefix for client-side environment variables.
+**What:** Use EXPO_PUBLIC_ prefix for client-side environment variables.
 
-**Why:** Only EXPO*PUBLIC* prefixed variables are exposed to the client bundle. Never put secrets in these variables.
+**Why:** Only EXPO_PUBLIC_ prefixed variables are exposed to the client bundle. Never put secrets in these variables.
 
 ```bash
 # .env
@@ -322,15 +327,15 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 ### 5.1 Use SecureStore for Tokens
 
-**What:** Use expo-secure-store for storing authentication tokens, not AsyncStorage.
+**What:** Use expo-secure-store for storing authentication tokens, not MMKV or AsyncStorage.
 
-**Why:** AsyncStorage is not encrypted and stores data in plain text. SecureStore uses the device's secure keychain/keystore.
+**Why:** SecureStore uses the device's secure keychain/keystore with hardware-backed encryption. MMKV encryption is software-based and less secure for sensitive credentials.
 
 ```tsx
-// BAD - Not secure, plain text storage
-await AsyncStorage.setItem("token", token);
+// BAD - Not secure enough for tokens
+storage.set("token", token);
 
-// GOOD - Encrypted storage
+// GOOD - Hardware-backed encryption
 import * as SecureStore from "expo-secure-store";
 await SecureStore.setItemAsync("token", token);
 ```
@@ -423,9 +428,9 @@ export default function Layout() {
 <Stack.Screen options={{ title: 'Home' }} />
 ```
 
-### 6.4 Use Link for Navigation
+### 6.4 Use Link for Declarative Navigation
 
-**What:** Use Link from expo-router for navigation, not imperative navigation.
+**What:** Use Link from expo-router for declarative navigation in JSX.
 
 ```tsx
 import { Link } from 'expo-router';
@@ -441,9 +446,81 @@ import { Link } from 'expo-router';
 </Link>
 ```
 
-### 6.5 Ensure Root Route Exists
+### 6.5 Use useRouter for Programmatic Navigation
+
+**What:** Use the useRouter hook for programmatic navigation inside components.
+
+**Why:** The hook is reactive to navigation context and handles edge cases (modals, tabs) correctly.
+
+```tsx
+import { useRouter } from 'expo-router';
+
+function MyComponent() {
+  const router = useRouter();
+
+  const handleSubmit = async () => {
+    await saveData();
+    router.push('/success');
+  };
+
+  const handleCancel = () => {
+    router.back();
+  };
+
+  // With params
+  const goToUser = (id: string) => {
+    router.push({
+      pathname: '/user/[id]',
+      params: { id }
+    });
+  };
+
+  return (/* ... */);
+}
+```
+
+**Note:** Only use direct `import { router } from 'expo-router'` outside of React components (utils, services).
+
+### 6.6 Ensure Root Route Exists
 
 **What:** Always have a route that matches "/" so the app is never blank.
+
+### 6.7 Android Back Gesture (Android 16+)
+
+**What:** Android 16 requires predictive back gesture support. Expo Router handles this automatically for standard navigation.
+
+**When to use BackHandler:** Only when you need to intercept back navigation (e.g., confirm exit with unsaved changes).
+
+```tsx
+import { useEffect } from 'react';
+import { BackHandler, Alert } from 'react-native';
+
+function FormScreen() {
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (hasUnsavedChanges) {
+        Alert.alert(
+          'Unsaved changes',
+          'Are you sure you want to leave?',
+          [
+            { text: 'Stay', style: 'cancel' },
+            { text: 'Leave', onPress: () => router.back() }
+          ]
+        );
+        return true; // Prevents default back
+      }
+      return false; // Allows normal back
+    });
+
+    return () => handler.remove();
+  }, [hasUnsavedChanges]);
+
+  return (/* ... */);
+}
+```
 
 ---
 
@@ -451,19 +528,73 @@ import { Link } from 'expo-router';
 
 ### 7.1 Safe Area Handling
 
-**What:** Use ScrollView with contentInsetAdjustmentBehavior="automatic" instead of SafeAreaView from react-native.
+**What:** Use `react-native-safe-area-context` for safe area handling. The approach depends on your screen type.
 
-**Why:** Provides smarter safe area handling and works better with navigation headers.
+**Why:** SafeAreaView from react-native is deprecated in RN 0.81. The context-based approach provides more flexibility and works correctly with animations.
+
+**Setup (required in root layout):**
 
 ```tsx
-// BAD
-import { SafeAreaView } from 'react-native';
-<SafeAreaView>...</SafeAreaView>
+// app/_layout.tsx
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-// GOOD
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <Stack />
+    </SafeAreaProvider>
+  );
+}
+```
+
+**Decision Matrix:**
+
+| Scenario | Solution |
+|----------|----------|
+| Scrollable content | `ScrollView` + `contentInsetAdjustmentBehavior="automatic"` |
+| Static screen (no scroll) | `useSafeAreaInsets()` hook |
+| Fixed bottom element (FAB, button) | `useSafeAreaInsets()` for bottom padding |
+| ❌ Avoid | `SafeAreaView` from react-native (deprecated) |
+
+```tsx
+// CASE 1: Scrollable content
 <ScrollView contentInsetAdjustmentBehavior="automatic">
-  ...
+  {/* long content */}
 </ScrollView>
+
+// CASE 2: Static screen without scroll
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+function StaticScreen() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={{
+      flex: 1,
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom
+    }}>
+      {/* static content */}
+    </View>
+  );
+}
+
+// CASE 3: Screen with fixed bottom button
+function ScreenWithBottomButton() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic">
+        {/* content */}
+      </ScrollView>
+
+      <View style={{ paddingBottom: insets.bottom }}>
+        <Button title="Submit" />
+      </View>
+    </View>
+  );
+}
 ```
 
 ### 7.2 Use useWindowDimensions
@@ -498,6 +629,8 @@ const { width, height } = useWindowDimensions();
 // GOOD - Modern boxShadow
 <View style={{ boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }} />
 ```
+
+**Note:** boxShadow works on both iOS and Android with New Architecture. For pixel-perfect consistency across platforms, test on both and consider platform-specific adjustments if needed.
 
 ### 7.4 Continuous Border Curves
 
@@ -536,9 +669,9 @@ const styles = StyleSheet.create({
 });
 
 // GOOD - Dynamic values inline are acceptable
-const { top } = useSafeAreaInsets();
+const insets = useSafeAreaInsets();
 
-<View style={[styles.container, { paddingTop: top }]}>
+<View style={[styles.container, { paddingTop: insets.top }]}>
   <Text style={{ opacity: isVisible ? 1 : 0 }}>Title</Text>
 </View>
 ```
@@ -588,7 +721,7 @@ const { top } = useSafeAreaInsets();
 
 **What:** Use process.env.EXPO_OS instead of Platform.OS.
 
-**Why:** EXPO_OS is optimized for Expo apps and provides better tree-shaking capabilities.
+**Why:** EXPO_OS enables better tree-shaking, removing platform-specific code from bundles.
 
 ```tsx
 // BAD
@@ -620,10 +753,10 @@ import { Image } from "expo-image";
 **Why:** React.use() is the modern API that works with Suspense and provides better integration with concurrent features.
 
 ```tsx
-// Legacy
+// Legacy (React 18 and earlier)
 const theme = React.useContext(ThemeContext);
 
-// Modern (React 19+)
+// Modern (React 19+ / Expo SDK 52+)
 const theme = React.use(ThemeContext);
 ```
 
@@ -636,7 +769,7 @@ const theme = React.use(ThemeContext);
 | Picker from react-native       | @react-native-picker/picker               |
 | WebView from react-native      | react-native-webview                      |
 | SafeAreaView from react-native | react-native-safe-area-context            |
-| AsyncStorage from react-native | @react-native-async-storage/async-storage |
+| AsyncStorage from react-native | react-native-mmkv or expo-secure-store    |
 
 ---
 
@@ -715,34 +848,374 @@ const handlePress = () => {
 
 ### 10.1 Storage Decision Matrix
 
-| Use Case                                 | Solution                            |
-| ---------------------------------------- | ----------------------------------- |
-| Simple key-value (settings, preferences) | localStorage polyfill (expo-sqlite) |
-| Large datasets, complex queries          | Full expo-sqlite                    |
-| Sensitive data (tokens, passwords)       | expo-secure-store                   |
+| Use Case | Solution |
+|----------|----------|
+| Settings, preferences, cache | `react-native-mmkv` |
+| Sensitive data (tokens, passwords) | `expo-secure-store` |
 
-### 10.2 Never Use AsyncStorage Directly
+### 10.2 Use MMKV for Local Storage
 
-**What:** Use expo-sqlite localStorage polyfill instead of AsyncStorage for key-value storage.
+**What:** Use react-native-mmkv for general key-value storage instead of AsyncStorage.
+
+**Why:** MMKV is ~30x faster than AsyncStorage, has a synchronous API, supports encryption, and is battle-tested by WeChat (billions of users).
 
 ```tsx
-// BAD
+// BAD - Slow, async API
 import AsyncStorage from "@react-native-async-storage/async-storage";
+await AsyncStorage.setItem("theme", "dark");
+const theme = await AsyncStorage.getItem("theme");
 
-// GOOD
-import "expo-sqlite/localStorage/install";
+// GOOD - Fast, sync API
+import { MMKV } from "react-native-mmkv";
 
-localStorage.setItem("key", "value");
-localStorage.getItem("key");
+const storage = new MMKV();
+
+storage.set("theme", "dark");
+const theme = storage.getString("theme");
+
+// Supports native types
+storage.set("count", 42);
+storage.set("enabled", true);
+storage.set("user", JSON.stringify(user));
+```
+
+### 10.3 MMKV with Encryption (Non-sensitive Data)
+
+**What:** Use MMKV's built-in encryption for data that needs protection but isn't highly sensitive.
+
+**Why:** Software-based encryption is suitable for preferences and cached data, but use SecureStore for tokens and passwords.
+
+```tsx
+const encryptedStorage = new MMKV({
+  id: "encrypted-storage",
+  encryptionKey: "your-encryption-key",
+});
+```
+
+### 10.4 Typed Storage Helper
+
+**What:** Create a typed wrapper for type-safe storage access.
+
+```tsx
+import { MMKV } from "react-native-mmkv";
+
+const storage = new MMKV();
+
+export const appStorage = {
+  getTheme: () => storage.getString("theme") as "light" | "dark" | undefined,
+  setTheme: (theme: "light" | "dark") => storage.set("theme", theme),
+
+  getOnboardingComplete: () => storage.getBoolean("onboarding") ?? false,
+  setOnboardingComplete: (value: boolean) => storage.set("onboarding", value),
+
+  getUser: () => {
+    const json = storage.getString("user");
+    return json ? JSON.parse(json) as User : null;
+  },
+  setUser: (user: User) => storage.set("user", JSON.stringify(user)),
+  clearUser: () => storage.delete("user"),
+};
 ```
 
 ---
 
-## 11. Code Style & Conventions
+## 11. Accessibility
 
-### 11.1 File Naming
+### 11.1 Always Add accessibilityLabel to Interactive Elements
+
+**What:** Add accessibilityLabel to all Pressable, TouchableOpacity, Button, and icon-only elements.
+
+**Why:** Screen readers (VoiceOver, TalkBack) read this label aloud. Without it, users hear nothing or unhelpful text like "button".
+
+```tsx
+// BAD - Screen reader says "button" or nothing
+<Pressable onPress={handleClose}>
+  <CloseIcon />
+</Pressable>
+
+// GOOD - Screen reader says "Close modal"
+<Pressable
+  onPress={handleClose}
+  accessibilityLabel="Close modal"
+>
+  <CloseIcon />
+</Pressable>
+
+// BAD - Screen reader reads "heart"
+<Pressable onPress={handleLike}>
+  <HeartIcon />
+</Pressable>
+
+// GOOD - Describes the action
+<Pressable
+  onPress={handleLike}
+  accessibilityLabel={isLiked ? "Remove from favorites" : "Add to favorites"}
+>
+  <HeartIcon filled={isLiked} />
+</Pressable>
+```
+
+### 11.2 Use accessibilityRole
+
+**What:** Specify the semantic role of interactive elements.
+
+**Why:** Tells assistive technology what type of element it is, enabling proper interaction patterns.
+
+```tsx
+// Common roles
+<Pressable accessibilityRole="button" />
+<Pressable accessibilityRole="link" />
+<Switch accessibilityRole="switch" />
+<TextInput accessibilityRole="search" />
+<Image accessibilityRole="image" accessibilityLabel="Product photo" />
+
+// Headers for screen structure
+<Text accessibilityRole="header">Settings</Text>
+```
+
+**Common Roles:**
+
+| Role | Use Case |
+|------|----------|
+| `button` | Pressable actions |
+| `link` | Navigation to other screens/URLs |
+| `header` | Section titles (helps navigation) |
+| `image` | Images (pair with accessibilityLabel) |
+| `search` | Search input fields |
+| `switch` | Toggle controls |
+| `checkbox` | Multi-select options |
+| `radio` | Single-select options |
+
+### 11.3 Use accessibilityState for Dynamic States
+
+**What:** Communicate element states to assistive technology.
+
+**Why:** Screen readers announce state changes, helping users understand the current UI state.
+
+```tsx
+// Toggle button
+<Pressable
+  accessibilityRole="button"
+  accessibilityLabel="Dark mode"
+  accessibilityState={{ checked: isDarkMode }}
+  onPress={toggleDarkMode}
+>
+  <Text>{isDarkMode ? "On" : "Off"}</Text>
+</Pressable>
+
+// Disabled button
+<Pressable
+  accessibilityRole="button"
+  accessibilityLabel="Submit form"
+  accessibilityState={{ disabled: !isFormValid }}
+  disabled={!isFormValid}
+  onPress={handleSubmit}
+>
+  <Text>Submit</Text>
+</Pressable>
+
+// Selected item in a list
+<Pressable
+  accessibilityRole="button"
+  accessibilityLabel={item.name}
+  accessibilityState={{ selected: item.id === selectedId }}
+  onPress={() => select(item.id)}
+>
+  <Text>{item.name}</Text>
+</Pressable>
+```
+
+### 11.4 Minimum Touch Target Size
+
+**What:** Ensure all interactive elements are at least 44x44 points.
+
+**Why:** Small touch targets are difficult for users with motor impairments. This is also an Apple/Google requirement.
+
+```tsx
+// BAD - Icon too small to tap reliably
+<Pressable onPress={handlePress}>
+  <Icon size={24} />
+</Pressable>
+
+// GOOD - Adequate touch target with hitSlop
+<Pressable
+  onPress={handlePress}
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
+  <Icon size={24} />
+</Pressable>
+
+// GOOD - Minimum size enforced
+<Pressable
+  onPress={handlePress}
+  style={{ minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
+>
+  <Icon size={24} />
+</Pressable>
+```
+
+### 11.5 Respect Reduced Motion
+
+**What:** Check user's motion preferences and reduce/disable animations accordingly.
+
+**Why:** Some users experience motion sickness, vestibular disorders, or simply prefer reduced motion.
+
+```tsx
+import { useReducedMotion } from "react-native-reanimated";
+
+function AnimatedComponent() {
+  const reducedMotion = useReducedMotion();
+
+  return (
+    <Animated.View
+      entering={reducedMotion ? FadeIn : FadeInDown.springify()}
+      exiting={reducedMotion ? FadeOut : FadeOutUp}
+    >
+      {content}
+    </Animated.View>
+  );
+}
+
+// For custom animations
+function CustomAnimation() {
+  const reducedMotion = useReducedMotion();
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: reducedMotion
+      ? []
+      : [{ translateY: withSpring(offset.value) }],
+    opacity: withTiming(opacity.value),
+  }));
+
+  return <Animated.View style={animatedStyle} />;
+}
+```
+
+### 11.6 Group Related Elements
+
+**What:** Use the accessible prop to group related elements as a single focusable unit.
+
+**Why:** Reduces the number of swipes needed to navigate and provides context.
+
+```tsx
+// BAD - Each element is separately focusable (3 swipes)
+<View>
+  <Image source={user.avatar} />
+  <Text>{user.name}</Text>
+  <Text>{user.role}</Text>
+</View>
+
+// GOOD - Single focusable unit (1 swipe)
+<View
+  accessible={true}
+  accessibilityLabel={`${user.name}, ${user.role}`}
+>
+  <Image source={user.avatar} />
+  <Text>{user.name}</Text>
+  <Text>{user.role}</Text>
+</View>
+
+// Card example
+<Pressable
+  accessible={true}
+  accessibilityRole="button"
+  accessibilityLabel={`${product.name}, ${product.price}. Double tap to view details`}
+  onPress={() => navigateToProduct(product.id)}
+>
+  <Image source={product.image} />
+  <Text>{product.name}</Text>
+  <Text>{product.price}</Text>
+</Pressable>
+```
+
+### 11.7 Announce Dynamic Content
+
+**What:** Use accessibilityLiveRegion to announce content changes.
+
+**Why:** Screen readers don't automatically announce dynamic updates. Users need to know when content changes.
+
+```tsx
+// Toast/Snackbar notifications
+<Animated.View
+  accessibilityLiveRegion="polite"
+  accessibilityRole="alert"
+  entering={SlideInUp}
+>
+  <Text>{message}</Text>
+</Animated.View>
+
+// Loading states
+<View accessibilityLiveRegion="polite">
+  {isLoading ? (
+    <Text accessibilityLabel="Loading content">Loading...</Text>
+  ) : (
+    <Text>{content}</Text>
+  )}
+</View>
+
+// Error messages
+<Text
+  accessibilityLiveRegion="assertive"
+  accessibilityRole="alert"
+  style={styles.error}
+>
+  {errorMessage}
+</Text>
+```
+
+**Live Region Types:**
+
+| Type | Use Case |
+|------|----------|
+| `polite` | Non-urgent updates (loading complete, new content) |
+| `assertive` | Urgent updates (errors, time-sensitive alerts) |
+| `none` | Don't announce (default) |
+
+### 11.8 Form Accessibility
+
+**What:** Associate labels with inputs and provide error feedback.
+
+```tsx
+// Text input with label
+<View>
+  <Text nativeID="emailLabel">Email address</Text>
+  <TextInput
+    accessibilityLabelledBy="emailLabel"
+    accessibilityRole="none"
+    keyboardType="email-address"
+    autoComplete="email"
+    textContentType="emailAddress"
+  />
+</View>
+
+// Input with error
+<View>
+  <Text nativeID="passwordLabel">Password</Text>
+  <TextInput
+    accessibilityLabelledBy="passwordLabel"
+    accessibilityState={{ invalid: !!error }}
+    accessibilityHint={error || "Enter your password"}
+  />
+  {error && (
+    <Text
+      accessibilityLiveRegion="polite"
+      style={styles.error}
+    >
+      {error}
+    </Text>
+  )}
+</View>
+```
+
+---
+
+## 12. Code Style & Conventions
+
+### 12.1 File Naming
 
 **What:** Use kebab-case for all file names.
+
+**Why:** This is the Expo standard convention. Consistency within the project is what matters most.
 
 ```
 // BAD
@@ -755,7 +1228,9 @@ comment-card.tsx
 user-profile.tsx
 ```
 
-### 11.2 Path Aliases
+**Note:** Existing projects using PascalCase for components (Button.tsx) should maintain consistency with their established convention.
+
+### 12.2 Path Aliases
 
 **What:** Configure tsconfig.json with path aliases and prefer aliases over relative imports.
 
@@ -779,7 +1254,7 @@ import { Button } from "../../../components/Button";
 import { Button } from "@/components/Button";
 ```
 
-### 11.3 No Intrinsic Elements
+### 12.3 No Intrinsic Elements
 
 **What:** Never use intrinsic HTML elements like 'img' or 'div' unless in a webview or Expo DOM component.
 
@@ -796,27 +1271,31 @@ import { View } from 'react-native';
 <View>...</View>
 ```
 
-### 11.4 Escape Strings Properly
+### 12.4 Escape Strings Properly
 
 **What:** Be cautious of unterminated strings. Ensure nested backticks are escaped correctly.
 
 ---
 
-## 12. Library Preferences
+## 13. Library Preferences
 
 ### Preferred Libraries
 
-| Category   | Use                            | Avoid                |
-| ---------- | ------------------------------ | -------------------- |
-| Images     | expo-image                     | react-native Image   |
-| Icons      | expo-symbols                   | @expo/vector-icons   |
-| Audio      | expo-audio                     | expo-av              |
-| Video      | expo-video                     | expo-av              |
-| Storage    | expo-sqlite, expo-secure-store | AsyncStorage         |
-| Networking | fetch, React Query             | axios                |
-| Animations | react-native-reanimated        | Animated from RN     |
-| Lists      | @shopify/flash-list            | ScrollView + map     |
-| Safe Area  | react-native-safe-area-context | SafeAreaView from RN |
+| Category | Use | Avoid |
+|----------|-----|-------|
+| Images | expo-image | react-native Image |
+| Icons (iOS native) | expo-symbols | - |
+| Icons (cross-platform) | @expo/vector-icons | - |
+| Audio | expo-audio | expo-av |
+| Video | expo-video | expo-av |
+| Storage (general) | react-native-mmkv | AsyncStorage |
+| Storage (sensitive) | expo-secure-store | MMKV, AsyncStorage |
+| Networking | fetch, React Query | axios |
+| Animations | react-native-reanimated | Animated from RN |
+| Lists | @shopify/flash-list | ScrollView + map |
+| Safe Area | react-native-safe-area-context | SafeAreaView from RN |
+
+**Note on Icons:** `expo-symbols` provides native SF Symbols on iOS only. For cross-platform apps, use `@expo/vector-icons` or combine both with platform checks.
 
 ---
 
@@ -827,14 +1306,20 @@ import { View } from 'react-native';
 - [ ] Lists with >20 items use FlashList/FlatList
 - [ ] No barrel imports (import directly from source)
 - [ ] All useEffect have cleanup functions for subscriptions/timers
-- [ ] Tokens stored in SecureStore, not AsyncStorage
+- [ ] Tokens stored in SecureStore, not MMKV or AsyncStorage
 - [ ] HTTP responses check .ok before parsing
 - [ ] No deprecated modules (Picker, WebView, SafeAreaView from RN)
 - [ ] File names use kebab-case
 - [ ] No co-located files in app/ directory
 - [ ] Using expo-image, not RN Image
 - [ ] Animations use Reanimated, not Animated
-- [ ] Safe areas handled with contentInsetAdjustmentBehavior
+- [ ] SafeAreaProvider in root layout
+- [ ] Safe areas handled with useSafeAreaInsets or contentInsetAdjustmentBehavior
+- [ ] Using MMKV for local storage, not AsyncStorage
+- [ ] useRouter hook for programmatic navigation
+- [ ] Interactive elements have accessibilityLabel
+- [ ] Touch targets are at least 44x44 points
+- [ ] Animations respect useReducedMotion
 
 ---
 
