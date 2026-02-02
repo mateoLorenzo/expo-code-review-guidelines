@@ -68,23 +68,7 @@ keyExtractor={(item, index) => index.toString()}
 keyExtractor={(item) => item.id.toString()}
 ```
 
-### 1.3 Memoize renderItem Functions
-
-**What:** Define renderItem functions outside the component or use useCallback.
-
-**Why:** Inline functions cause re-renders on every parent update.
-
-```tsx
-// BAD - Inline function recreated every render
-<FlashList data={items} renderItem={({ item }) => <Item {...item} />} />;
-
-// GOOD - Stable function reference
-const renderItem = useCallback(({ item }) => <Item {...item} />, []);
-
-<FlashList data={items} renderItem={renderItem} />;
-```
-
-### 1.4 React Compiler (Expo SDK 52+)
+### 1.3 React Compiler (Expo SDK 52+)
 
 **What:** Enable React Compiler v1.0 for automatic memoization instead of manual memo/useMemo/useCallback.
 
@@ -253,21 +237,25 @@ const { data, isLoading, error } = useQuery({
 
 **What:** Use `EXPO_PUBLIC_` prefix only for non-sensitive client-side configuration.
 
-**Why:** Variables with `EXPO_PUBLIC_` prefix are embedded in the JavaScript bundle and visible to anyone who downloads the app. Never use this prefix for secrets, API keys, or sensitive credentials.
+**Why:** Variables with `EXPO_PUBLIC_` prefix are embedded in the JavaScript bundle and visible to anyone who downloads the app. Never use this prefix for secrets or sensitive credentials.
 
 ```bash
 # .env
 
-# OK - Public configuration
+# OK - Public configuration (safe to expose)
 EXPO_PUBLIC_API_URL=https://api.example.com
 EXPO_PUBLIC_ENVIRONMENT=production
+EXPO_PUBLIC_SENTRY_DSN=https://abc123@sentry.io/123
+EXPO_PUBLIC_POSTHOG_KEY=phc_abc123
 
 # NEVER use EXPO_PUBLIC_ for:
-# - API keys (STRIPE_SECRET_KEY, FIREBASE_API_KEY)
+# - Secret keys (STRIPE_SECRET_KEY, OPENAI_API_KEY)
 # - Auth secrets (JWT_SECRET, AUTH0_CLIENT_SECRET)
-# - Database credentials
-# - Any sensitive tokens
+# - Database credentials (DATABASE_URL, SUPABASE_SERVICE_KEY)
+# - Private API keys that grant write/admin access
 ```
+
+**Note:** Some services (Firebase, Sentry, PostHog) have client-side keys that are safe to expose—security is enforced server-side. Check each service's documentation.
 
 ---
 
@@ -586,21 +574,7 @@ import { Image } from "react-native";
 import { Image } from "expo-image";
 ```
 
-### 8.2 Use Modern Context API
-
-**What:** Use React.use() instead of React.useContext() (React 19+).
-
-**Why:** React.use() is the modern API that works with Suspense and provides better integration with concurrent features.
-
-```tsx
-// Legacy (React 18 and earlier)
-const theme = React.useContext(ThemeContext);
-
-// Modern (React 19+ / Expo SDK 52+)
-const theme = React.use(ThemeContext);
-```
-
-### 8.3 Never Use Deprecated Modules
+### 8.2 Never Use Deprecated Modules
 
 **What:** Never use deprecated React Native modules.
 
@@ -1051,22 +1025,30 @@ function CustomAnimation() {
 
 ### 12.1 File Naming
 
-**What:** Use different naming conventions for routes and components:
-- **Routes** (in `/app`): kebab-case → `user-profile.tsx`
+**What:** Use different naming conventions based on location:
+- **Routes & Screens** (in `/app` and `/src/screens`): kebab-case → `user-profile.tsx`, `user-profile/`
 - **Components** (in `/src/components`): PascalCase → `UserProfile.tsx`
 
-**Why:** Routes map to URLs which use kebab-case. Components use PascalCase to match the exported component name (React convention).
+**Why:** Routes map to URLs which use kebab-case. Screen folders mirror the route structure for consistency. Reusable components use PascalCase to match the exported component name (React convention).
 
 ```
-// Routes (app/)
+// Routes (app/) - kebab-case
 app/
   user-profile.tsx      ✓ kebab-case
   settings.tsx          ✓ kebab-case
   _layout.tsx           ✓ kebab-case
 
-// Components (src/components/)
+// Screens (src/screens/) - kebab-case folders, mirrors /app structure
+src/screens/
+  user-profile/
+    index.tsx           ✓ screen content
+    components/         ✓ screen-specific components
+  settings/
+    index.tsx
+
+// Reusable Components (src/components/) - PascalCase
 src/components/
-  UserProfile.tsx       ✓ PascalCase
+  UserAvatar.tsx        ✓ PascalCase
   CommentCard.tsx       ✓ PascalCase
   Button.tsx            ✓ PascalCase
 ```
