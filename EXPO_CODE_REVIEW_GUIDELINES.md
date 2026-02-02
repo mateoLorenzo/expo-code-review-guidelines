@@ -5,8 +5,6 @@
 
 **Target versions:** Expo SDK 54 | React Native 0.81 | React 19.1.0
 
-> ⚠️ **SDK 54 is the last version supporting Legacy Architecture.** Starting with SDK 55, all apps must use New Architecture. Plan your migration accordingly.
-
 ---
 
 ## Table of Contents
@@ -296,9 +294,9 @@ useEffect(() => {
 
 ### 4.4 Environment Variables
 
-**What:** Use EXPO_PUBLIC_ prefix for client-side environment variables.
+**What:** Use EXPO*PUBLIC* prefix for client-side environment variables.
 
-**Why:** Only EXPO_PUBLIC_ prefixed variables are exposed to the client bundle. Never put secrets in these variables.
+**Why:** Only EXPO*PUBLIC* prefixed variables are exposed to the client bundle. Never put secrets in these variables.
 
 ```bash
 # .env
@@ -523,7 +521,7 @@ function FormScreen() {
 
 ```tsx
 // app/_layout.tsx
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   return (
@@ -536,31 +534,33 @@ export default function RootLayout() {
 
 **Decision Matrix:**
 
-| Scenario | Solution |
-|----------|----------|
-| Scrollable content | `ScrollView` + `contentInsetAdjustmentBehavior="automatic"` |
-| Static screen (no scroll) | `useSafeAreaInsets()` hook |
-| Fixed bottom element (FAB, button) | `useSafeAreaInsets()` for bottom padding |
-| ❌ Avoid | `SafeAreaView` from react-native (deprecated) |
+| Scenario                           | Solution                                                    |
+| ---------------------------------- | ----------------------------------------------------------- |
+| Scrollable content                 | `ScrollView` + `contentInsetAdjustmentBehavior="automatic"` |
+| Static screen (no scroll)          | `useSafeAreaInsets()` hook                                  |
+| Fixed bottom element (FAB, button) | `useSafeAreaInsets()` for bottom padding                    |
+| ❌ Avoid                           | `SafeAreaView` from react-native (deprecated)               |
 
 ```tsx
 // CASE 1: Scrollable content
 <ScrollView contentInsetAdjustmentBehavior="automatic">
   {/* long content */}
-</ScrollView>
+</ScrollView>;
 
 // CASE 2: Static screen without scroll
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function StaticScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={{
-      flex: 1,
-      paddingTop: insets.top,
-      paddingBottom: insets.bottom
-    }}>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+      }}
+    >
       {/* static content */}
     </View>
   );
@@ -751,12 +751,12 @@ const theme = React.use(ThemeContext);
 
 **What:** Never use deprecated React Native modules.
 
-| Deprecated                     | Use Instead                               |
-| ------------------------------ | ----------------------------------------- |
-| Picker from react-native       | @react-native-picker/picker               |
-| WebView from react-native      | react-native-webview                      |
-| SafeAreaView from react-native | react-native-safe-area-context            |
-| AsyncStorage from react-native | react-native-mmkv or expo-secure-store    |
+| Deprecated                     | Use Instead                            |
+| ------------------------------ | -------------------------------------- |
+| Picker from react-native       | @react-native-picker/picker            |
+| WebView from react-native      | react-native-webview                   |
+| SafeAreaView from react-native | react-native-safe-area-context         |
+| AsyncStorage from react-native | react-native-mmkv or expo-secure-store |
 
 ---
 
@@ -835,9 +835,9 @@ const handlePress = () => {
 
 ### 10.1 Storage Decision Matrix
 
-| Use Case | Solution |
-|----------|----------|
-| Settings, preferences, cache | `react-native-mmkv` |
+| Use Case                           | Solution            |
+| ---------------------------------- | ------------------- |
+| Settings, preferences, cache       | `react-native-mmkv` |
 | Sensitive data (tokens, passwords) | `expo-secure-store` |
 
 ### 10.2 Use MMKV for Local Storage
@@ -897,7 +897,7 @@ export const appStorage = {
 
   getUser: () => {
     const json = storage.getString("user");
-    return json ? JSON.parse(json) as User : null;
+    return json ? (JSON.parse(json) as User) : null;
   },
   setUser: (user: User) => storage.set("user", JSON.stringify(user)),
   clearUser: () => storage.delete("user"),
@@ -962,16 +962,16 @@ export const appStorage = {
 
 **Common Roles:**
 
-| Role | Use Case |
-|------|----------|
-| `button` | Pressable actions |
-| `link` | Navigation to other screens/URLs |
-| `header` | Section titles (helps navigation) |
-| `image` | Images (pair with accessibilityLabel) |
-| `search` | Search input fields |
-| `switch` | Toggle controls |
-| `checkbox` | Multi-select options |
-| `radio` | Single-select options |
+| Role       | Use Case                              |
+| ---------- | ------------------------------------- |
+| `button`   | Pressable actions                     |
+| `link`     | Navigation to other screens/URLs      |
+| `header`   | Section titles (helps navigation)     |
+| `image`    | Images (pair with accessibilityLabel) |
+| `search`   | Search input fields                   |
+| `switch`   | Toggle controls                       |
+| `checkbox` | Multi-select options                  |
+| `radio`    | Single-select options                 |
 
 ### 11.3 Use accessibilityState for Dynamic States
 
@@ -1068,9 +1068,7 @@ function CustomAnimation() {
   const reducedMotion = useReducedMotion();
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: reducedMotion
-      ? []
-      : [{ translateY: withSpring(offset.value) }],
+    transform: reducedMotion ? [] : [{ translateY: withSpring(offset.value) }],
     opacity: withTiming(opacity.value),
   }));
 
@@ -1152,11 +1150,11 @@ function CustomAnimation() {
 
 **Live Region Types:**
 
-| Type | Use Case |
-|------|----------|
-| `polite` | Non-urgent updates (loading complete, new content) |
-| `assertive` | Urgent updates (errors, time-sensitive alerts) |
-| `none` | Don't announce (default) |
+| Type        | Use Case                                           |
+| ----------- | -------------------------------------------------- |
+| `polite`    | Non-urgent updates (loading complete, new content) |
+| `assertive` | Urgent updates (errors, time-sensitive alerts)     |
+| `none`      | Don't announce (default)                           |
 
 ### 11.8 Form Accessibility
 
@@ -1268,19 +1266,19 @@ import { View } from 'react-native';
 
 ### Preferred Libraries
 
-| Category | Use | Avoid |
-|----------|-----|-------|
-| Images | expo-image | react-native Image |
-| Icons (iOS native) | expo-symbols | - |
-| Icons (cross-platform) | @expo/vector-icons | - |
-| Audio | expo-audio | expo-av |
-| Video | expo-video | expo-av |
-| Storage (general) | react-native-mmkv | AsyncStorage |
-| Storage (sensitive) | expo-secure-store | MMKV, AsyncStorage |
-| Networking | React Query | - |
-| Animations | react-native-reanimated | Animated from RN |
-| Lists | @shopify/flash-list | ScrollView + map |
-| Safe Area | react-native-safe-area-context | SafeAreaView from RN |
+| Category               | Use                            | Avoid                |
+| ---------------------- | ------------------------------ | -------------------- |
+| Images                 | expo-image                     | react-native Image   |
+| Icons (iOS native)     | expo-symbols                   | -                    |
+| Icons (cross-platform) | @expo/vector-icons             | -                    |
+| Audio                  | expo-audio                     | expo-av              |
+| Video                  | expo-video                     | expo-av              |
+| Storage (general)      | react-native-mmkv              | AsyncStorage         |
+| Storage (sensitive)    | expo-secure-store              | MMKV, AsyncStorage   |
+| Networking             | React Query                    | -                    |
+| Animations             | react-native-reanimated        | Animated from RN     |
+| Lists                  | @shopify/flash-list            | ScrollView + map     |
+| Safe Area              | react-native-safe-area-context | SafeAreaView from RN |
 
 **Note on Icons:** `expo-symbols` provides native SF Symbols on iOS only. For cross-platform apps, use `@expo/vector-icons` or combine both with platform checks.
 
