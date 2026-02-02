@@ -119,18 +119,23 @@ import Button from "./components/Button";
 
 ### 2.2 Direct Library Imports
 
-**What:** Import specific functions from libraries instead of the entire library.
+**What:** Import specific functions from libraries instead of the entire library, OR enable tree shaking.
 
-**Why:** Reduces bundle size significantly, especially with large libraries like date-fns, lodash.
+**Why:** Reduces bundle size significantly, especially with large libraries like lodash.
 
 ```tsx
-// BAD - Imports entire library
-import { format, addDays, isToday } from "date-fns";
+// BAD - Imports entire lodash library (~70kb)
+import { debounce } from "lodash";
 
-// GOOD - Direct imports
-import format from "date-fns/format";
-import addDays from "date-fns/addDays";
-import isToday from "date-fns/isToday";
+// GOOD - Direct import (~2kb)
+import debounce from "lodash/debounce";
+```
+
+**Note:** Modern libraries like `date-fns` support tree shaking out of the box. With tree shaking enabled (see 2.3), named imports work efficiently:
+
+```tsx
+// OK with tree shaking enabled
+import { format, addDays } from "date-fns";
 ```
 
 ### 2.3 Enable Tree Shaking (Expo SDK 52+)
