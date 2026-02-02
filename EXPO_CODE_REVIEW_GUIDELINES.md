@@ -65,7 +65,7 @@
 keyExtractor={(item, index) => index.toString()}
 
 // GOOD - Unique ID-based keys
-keyExtractor={(item) => item.id}
+keyExtractor={(item) => item.id.toString()}
 ```
 
 ### 1.3 Memoize renderItem Functions
@@ -223,28 +223,7 @@ class GoodExample {
 
 ## 4. Networking & Data Fetching
 
-### 4.1 Always Check response.ok (fetch only)
-
-**What:** When using fetch, always check response.ok before parsing JSON.
-
-**Why:** fetch doesn't throw on HTTP errors (4xx, 5xx). Without checking, you'll try to parse error pages as JSON. This doesn't apply to axios, which throws automatically on HTTP errors.
-
-```tsx
-// BAD - No error handling with fetch
-const data = await fetch(url).then((r) => r.json());
-
-// GOOD - Proper error handling with fetch
-const response = await fetch(url);
-if (!response.ok) {
-  throw new Error(`HTTP error! status: ${response.status}`);
-}
-const data = await response.json();
-
-// axios throws automatically, so this is fine
-const { data } = await axios.get(url);
-```
-
-### 4.2 Use React Query for Data Management
+### 4.1 Use React Query for Data Management
 
 **What:** Use TanStack Query (React Query) for server state management.
 
@@ -270,39 +249,24 @@ const { data, isLoading, error } = useQuery({
 });
 ```
 
-### 4.3 Request Cancellation
+### 4.2 Environment Variables
 
-**What:** Cancel requests on component unmount using AbortController.
+**What:** Use `EXPO_PUBLIC_` prefix only for non-sensitive client-side configuration.
 
-```tsx
-useEffect(() => {
-  const controller = new AbortController();
-
-  fetch(url, { signal: controller.signal })
-    .then((response) => response.json())
-    .then(setData)
-    .catch((error) => {
-      if (error.name !== "AbortError") {
-        setError(error);
-      }
-    });
-
-  return () => controller.abort();
-}, [url]);
-```
-
-### 4.4 Environment Variables
-
-**What:** Use EXPO*PUBLIC* prefix for client-side environment variables.
-
-**Why:** Only EXPO*PUBLIC* prefixed variables are exposed to the client bundle. Never put secrets in these variables.
+**Why:** Variables with `EXPO_PUBLIC_` prefix are embedded in the JavaScript bundle and visible to anyone who downloads the app. Never use this prefix for secrets, API keys, or sensitive credentials.
 
 ```bash
 # .env
-EXPO_PUBLIC_API_URL=https://api.example.com
 
-# Usage
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+# OK - Public configuration
+EXPO_PUBLIC_API_URL=https://api.example.com
+EXPO_PUBLIC_ENVIRONMENT=production
+
+# NEVER use EXPO_PUBLIC_ for:
+# - API keys (STRIPE_SECRET_KEY, FIREBASE_API_KEY)
+# - Auth secrets (JWT_SECRET, AUTH0_CLIENT_SECRET)
+# - Database credentials
+# - Any sensitive tokens
 ```
 
 ---
