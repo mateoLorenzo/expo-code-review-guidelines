@@ -1,19 +1,27 @@
 # React Native + Expo Code Guidelines
 
 > Code review standards for React Native + Expo projects.
-> Based on [expo/skills](https://github.com/expo/skills), [callstackincubator/agent-skills](https://github.com/callstackincubator/agent-skills), and Callstack's "Ultimate Guide to React Native Optimization".
 
 **Target versions:** Expo SDK 54 | React Native 0.81 | React 19.1.0
+
+**Sources:**
+
+- [Expo Docs](https://docs.expo.dev/)
+- [Expo YouTube](https://www.youtube.com/@ExpoDevelopers)
+- [Code with Beto](https://www.youtube.com/@codewithbeto)
+- [expo/skills](https://github.com/expo/skills)
+- [callstackincubator/agent-skills](https://github.com/callstackincubator/agent-skills)
+- Callstack's "Ultimate Guide to React Native Optimization"
 
 ---
 
 ## Severity Levels
 
-| Level | Meaning |
-|-------|---------|
-| 🔴 **Critical** | Must fix. Security risks, crashes, or severe performance issues. |
-| 🟡 **Warning** | Should fix. Performance degradation, maintenance issues, or bad practices. |
-| 🟢 **Suggestion** | Nice to have. Polish, UX improvements, or minor optimizations. |
+| Level             | Meaning                                                                    |
+| ----------------- | -------------------------------------------------------------------------- |
+| 🔴 **Critical**   | Must fix. Security risks, crashes, or severe performance issues.           |
+| 🟡 **Warning**    | Should fix. Performance degradation, maintenance issues, or bad practices. |
+| 🟢 **Suggestion** | Nice to have. Polish, UX improvements, or minor optimizations.             |
 
 ---
 
@@ -1037,6 +1045,7 @@ function CustomAnimation() {
 ### 12.1 File Naming 🟡
 
 **What:** Use different naming conventions based on location:
+
 - **Routes & Screens** (in `/app` and `/src/screens`): kebab-case → `user-profile.tsx`, `user-profile/`
 - **Components** (in `/src/components`): PascalCase → `UserProfile.tsx`
 
@@ -1110,7 +1119,7 @@ function processData(data: any) {
 
 // BAD - Silences errors but doesn't fix the problem
 const response = await fetch(url);
-const data = await response.json() as any;
+const data = (await response.json()) as any;
 
 // GOOD - Use unknown and narrow the type
 function processData(data: unknown) {
@@ -1136,6 +1145,7 @@ const data = await parseResponse<ApiResponse>(response);
 ```
 
 **Acceptable exceptions:**
+
 - Third-party library types that genuinely require `any` (rare)
 - Temporary `// @ts-expect-error` with explanation during migration
 
@@ -1152,10 +1162,7 @@ const user = data as User;
 // GOOD - Validate at runtime
 function isUser(data: unknown): data is User {
   return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    "name" in data
+    typeof data === "object" && data !== null && "id" in data && "name" in data
   );
 }
 
@@ -1213,7 +1220,10 @@ interface User {
 
 // GOOD - Type for unions and complex types
 type Status = "pending" | "active" | "inactive";
-type AsyncState<T> = { status: "loading" } | { status: "success"; data: T } | { status: "error"; error: Error };
+type AsyncState<T> =
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; error: Error };
 
 // GOOD - Type for function signatures (when needed separately)
 type FetchUser = (id: number) => Promise<User>;
@@ -1225,19 +1235,19 @@ type FetchUser = (id: number) => Promise<User>;
 
 ### Preferred Libraries
 
-| Category               | Use                            | Avoid                |
-| ---------------------- | ------------------------------ | -------------------- |
-| Images                 | expo-image                     | react-native Image   |
-| Icons (iOS native)     | expo-symbols                   | -                    |
-| Icons (cross-platform) | @expo/vector-icons             | -                    |
-| Audio                  | expo-audio                     | expo-av              |
-| Video                  | expo-video                     | expo-av              |
-| Storage (general)      | react-native-mmkv              | AsyncStorage         |
-| Storage (sensitive)    | expo-secure-store              | MMKV, AsyncStorage   |
-| Networking             | React Query                    | -                    |
-| Animations             | react-native-reanimated        | Animated from RN     |
+| Category               | Use                            | Avoid                      |
+| ---------------------- | ------------------------------ | -------------------------- |
+| Images                 | expo-image                     | react-native Image         |
+| Icons (iOS native)     | expo-symbols                   | -                          |
+| Icons (cross-platform) | @expo/vector-icons             | -                          |
+| Audio                  | expo-audio                     | expo-av                    |
+| Video                  | expo-video                     | expo-av                    |
+| Storage (general)      | react-native-mmkv              | AsyncStorage               |
+| Storage (sensitive)    | expo-secure-store              | MMKV, AsyncStorage         |
+| Networking             | React Query                    | -                          |
+| Animations             | react-native-reanimated        | Animated from RN           |
 | Lists                  | @shopify/flash-list            | FlatList, ScrollView + map |
-| Safe Area              | react-native-safe-area-context | SafeAreaView from RN |
+| Safe Area              | react-native-safe-area-context | SafeAreaView from RN       |
 
 **Note on Icons:** `expo-symbols` provides native SF Symbols on iOS only. For cross-platform apps, use `@expo/vector-icons` or combine both with platform checks.
 
