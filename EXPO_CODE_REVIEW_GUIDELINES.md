@@ -7,6 +7,16 @@
 
 ---
 
+## Severity Levels
+
+| Level | Meaning |
+|-------|---------|
+| 🔴 **Critical** | Must fix. Security risks, crashes, or severe performance issues. |
+| 🟡 **Warning** | Should fix. Performance degradation, maintenance issues, or bad practices. |
+| 🟢 **Suggestion** | Nice to have. Polish, UX improvements, or minor optimizations. |
+
+---
+
 ## Table of Contents
 
 1. [Performance - Lists & Rendering](#1-performance---lists--rendering)
@@ -21,13 +31,14 @@
 10. [Storage](#10-storage)
 11. [Accessibility](#11-accessibility)
 12. [Code Style & Conventions](#12-code-style--conventions)
-13. [Library Preferences](#13-library-preferences)
+13. [TypeScript](#13-typescript)
+14. [Library Preferences](#14-library-preferences)
 
 ---
 
 ## 1. Performance - Lists & Rendering
 
-### 1.1 Use FlashList for Lists
+### 1.1 Use FlashList for Lists 🟡
 
 **What:** Use FlashList instead of ScrollView with .map() for lists with more than 10-20 items.
 
@@ -54,7 +65,7 @@
 | > 20 items | FlashList |
 | Complex item layouts | FlashList with `getItemType` |
 
-### 1.2 Proper keyExtractor
+### 1.2 Proper keyExtractor 🟡
 
 **What:** Use unique item IDs for keyExtractor, not array indices.
 
@@ -68,7 +79,7 @@ keyExtractor={(item, index) => index.toString()}
 keyExtractor={(item) => item.id.toString()}
 ```
 
-### 1.3 React Compiler (Expo SDK 52+)
+### 1.3 React Compiler (Expo SDK 52+) 🟢
 
 **What:** Enable React Compiler v1.0 for automatic memoization instead of manual memo/useMemo/useCallback.
 
@@ -89,7 +100,7 @@ keyExtractor={(item) => item.id.toString()}
 
 ## 2. Performance - Bundle Size
 
-### 2.1 Avoid Barrel Exports
+### 2.1 Avoid Barrel Exports 🟡
 
 **What:** Import directly from source files instead of barrel exports (index.ts).
 
@@ -103,7 +114,7 @@ import { Button } from "./components";
 import Button from "./components/Button";
 ```
 
-### 2.2 Direct Library Imports
+### 2.2 Direct Library Imports 🟡
 
 **What:** Import specific functions from libraries instead of the entire library, OR enable tree shaking.
 
@@ -124,7 +135,7 @@ import debounce from "lodash/debounce";
 import { format, addDays } from "date-fns";
 ```
 
-### 2.3 Enable Tree Shaking (Expo SDK 52+)
+### 2.3 Enable Tree Shaking (Expo SDK 52+) 🟢
 
 **What:** Enable experimental tree shaking for automatic dead code elimination.
 
@@ -138,7 +149,7 @@ EXPO_UNSTABLE_TREE_SHAKING=1
 
 ## 3. Performance - Memory Management
 
-### 3.1 useEffect Cleanup
+### 3.1 useEffect Cleanup 🔴
 
 **What:** Always return a cleanup function in useEffect for subscriptions, timers, and listeners.
 
@@ -157,7 +168,7 @@ useEffect(() => {
 }, []);
 ```
 
-### 3.2 Timer Cleanup
+### 3.2 Timer Cleanup 🔴
 
 **What:** Always clear intervals and timeouts in useEffect cleanup.
 
@@ -178,7 +189,7 @@ useEffect(() => {
 }, []);
 ```
 
-### 3.3 Avoid Closure Memory Leaks
+### 3.3 Avoid Closure Memory Leaks 🟡
 
 **What:** Don't capture large objects in closures when only a small value is needed.
 
@@ -207,7 +218,7 @@ class GoodExample {
 
 ## 4. Networking & Data Fetching
 
-### 4.1 Use React Query for Data Management
+### 4.1 Use React Query for Data Management 🟡
 
 **What:** Use TanStack Query (React Query) for server state management.
 
@@ -233,7 +244,7 @@ const { data, isLoading, error } = useQuery({
 });
 ```
 
-### 4.2 Environment Variables
+### 4.2 Environment Variables 🔴
 
 **What:** Use `EXPO_PUBLIC_` prefix only for non-sensitive client-side configuration.
 
@@ -261,7 +272,7 @@ EXPO_PUBLIC_POSTHOG_KEY=phc_abc123
 
 ## 5. Authentication & Security
 
-### 5.1 Use SecureStore for Tokens
+### 5.1 Use SecureStore for Tokens 🔴
 
 **What:** Use expo-secure-store for storing authentication tokens, not MMKV or AsyncStorage.
 
@@ -280,7 +291,7 @@ await SecureStore.setItemAsync("token", token);
 
 ## 6. Navigation & Routing
 
-### 6.1 Route File Organization
+### 6.1 Route File Organization 🟡
 
 **What:** Never co-locate components, types, or utilities in the app directory.
 
@@ -305,7 +316,7 @@ src/
   types/
 ```
 
-### 6.2 Screen Content Organization
+### 6.2 Screen Content Organization 🟡
 
 **What:** Route files in `/app` should only import and export screens. The actual screen content lives in `/src/screens/`.
 
@@ -338,7 +349,7 @@ src/
       components/        <- screen-specific components (optional)
 ```
 
-### 6.3 Always Use \_layout.tsx for Stacks
+### 6.3 Always Use \_layout.tsx for Stacks 🟡
 
 **What:** Define navigation stacks in \_layout.tsx files, not inline.
 
@@ -355,7 +366,7 @@ export default function Layout() {
 }
 ```
 
-### 6.4 Use Link with asChild for Navigation
+### 6.4 Use Link with asChild for Navigation 🟢
 
 **What:** Use Link from expo-router with asChild to wrap Pressable components.
 
@@ -369,7 +380,7 @@ import { Link } from "expo-router";
 </Link>;
 ```
 
-### 6.5 Use useRouter for Programmatic Navigation
+### 6.5 Use useRouter for Programmatic Navigation 🟡
 
 **What:** Use the useRouter hook for programmatic navigation inside components.
 
@@ -404,7 +415,7 @@ function MyComponent() {
 
 **Note:** Only use direct `import { router } from 'expo-router'` outside of React components (utils, services).
 
-### 6.6 Ensure Root Route Exists
+### 6.6 Ensure Root Route Exists 🔴
 
 **What:** Always have a route that matches "/" so the app is never blank.
 
@@ -412,7 +423,7 @@ function MyComponent() {
 
 ## 7. Styling & UI
 
-### 7.1 Safe Area Handling
+### 7.1 Safe Area Handling 🟡
 
 **What:** Use `react-native-safe-area-context` for safe area handling. The approach depends on your screen type.
 
@@ -485,7 +496,7 @@ function ScreenWithBottomButton() {
 }
 ```
 
-### 7.2 Use useWindowDimensions
+### 7.2 Use useWindowDimensions 🟡
 
 **What:** Use useWindowDimensions hook instead of Dimensions.get().
 
@@ -499,7 +510,7 @@ const { width, height } = Dimensions.get("window");
 const { width, height } = useWindowDimensions();
 ```
 
-### 7.3 Use StyleSheet.create for Static Styles
+### 7.3 Use StyleSheet.create for Static Styles 🟢
 
 **What:** Define static styles in StyleSheet.create. Inline styles are acceptable for dynamic values computed at runtime.
 
@@ -529,7 +540,7 @@ const insets = useSafeAreaInsets();
 </View>
 ```
 
-### 7.4 Flexbox Over Absolute Positioning
+### 7.4 Flexbox Over Absolute Positioning 🟢
 
 **What:** Use flexbox for layouts, prefer gap over margin/padding for spacing.
 
@@ -547,7 +558,7 @@ const insets = useSafeAreaInsets();
 </View>
 ```
 
-### 7.5 Selectable Text for Important Data
+### 7.5 Selectable Text for Important Data 🟢
 
 **What:** Add the selectable prop to Text elements displaying important data or error messages.
 
@@ -560,7 +571,7 @@ const insets = useSafeAreaInsets();
 
 ## 8. Components & Architecture
 
-### 8.1 Use expo-image
+### 8.1 Use expo-image 🟡
 
 **What:** Use expo-image Image component instead of React Native's Image.
 
@@ -574,7 +585,7 @@ import { Image } from "react-native";
 import { Image } from "expo-image";
 ```
 
-### 8.2 Never Use Deprecated Modules
+### 8.2 Never Use Deprecated Modules 🔴
 
 **What:** Never use deprecated React Native modules.
 
@@ -589,7 +600,7 @@ import { Image } from "expo-image";
 
 ## 9. Animations
 
-### 9.1 Use Reanimated
+### 9.1 Use Reanimated 🟡
 
 **What:** Use Reanimated v4 for animations, not React Native's built-in Animated API.
 
@@ -607,7 +618,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 </Animated.View>;
 ```
 
-### 9.2 Add Enter/Exit Animations
+### 9.2 Add Enter/Exit Animations 🟢
 
 **What:** Add entering and exiting animations for state changes.
 
@@ -621,11 +632,11 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 </Animated.View>
 ```
 
-### 9.3 Keep Animations Under 300ms
+### 9.3 Keep Animations Under 300ms 🟢
 
 **What:** Keep animations under 300ms for responsive feel.
 
-### 9.4 Prefer Transforms Over Layout
+### 9.4 Prefer Transforms Over Layout 🟡
 
 **What:** Avoid animating layout properties (width, height) when possible - prefer transforms.
 
@@ -641,7 +652,7 @@ const style = useAnimatedStyle(() => ({
 }));
 ```
 
-### 9.5 Use Haptics on iOS
+### 9.5 Use Haptics on iOS 🟢
 
 **What:** Use expo-haptics conditionally on iOS for delightful interactions.
 
@@ -660,14 +671,14 @@ const handlePress = () => {
 
 ## 10. Storage
 
-### 10.1 Storage Decision Matrix
+### 10.1 Storage Decision Matrix 🟡
 
 | Use Case                           | Solution            |
 | ---------------------------------- | ------------------- |
 | Settings, preferences, cache       | `react-native-mmkv` |
 | Sensitive data (tokens, passwords) | `expo-secure-store` |
 
-### 10.2 Use MMKV for Local Storage
+### 10.2 Use MMKV for Local Storage 🟡
 
 **What:** Use react-native-mmkv for general key-value storage instead of AsyncStorage.
 
@@ -693,7 +704,7 @@ storage.set("enabled", true);
 storage.set("user", JSON.stringify(user));
 ```
 
-### 10.3 MMKV with Encryption (Non-sensitive Data)
+### 10.3 MMKV with Encryption (Non-sensitive Data) 🟢
 
 **What:** Use MMKV's built-in encryption for data that needs protection but isn't highly sensitive.
 
@@ -706,7 +717,7 @@ const encryptedStorage = new MMKV({
 });
 ```
 
-### 10.4 Typed Storage Helper
+### 10.4 Typed Storage Helper 🟢
 
 **What:** Create a typed wrapper for type-safe storage access.
 
@@ -735,7 +746,7 @@ export const appStorage = {
 
 ## 11. Accessibility
 
-### 11.1 Always Add accessibilityLabel to Interactive Elements
+### 11.1 Always Add accessibilityLabel to Interactive Elements 🟡
 
 **What:** Add accessibilityLabel to all Pressable, TouchableOpacity, Button, and icon-only elements.
 
@@ -769,7 +780,7 @@ export const appStorage = {
 </Pressable>
 ```
 
-### 11.2 Use accessibilityRole
+### 11.2 Use accessibilityRole 🟡
 
 **What:** Specify the semantic role of interactive elements.
 
@@ -800,7 +811,7 @@ export const appStorage = {
 | `checkbox` | Multi-select options                  |
 | `radio`    | Single-select options                 |
 
-### 11.3 Use accessibilityState for Dynamic States
+### 11.3 Use accessibilityState for Dynamic States 🟢
 
 **What:** Communicate element states to assistive technology.
 
@@ -839,7 +850,7 @@ export const appStorage = {
 </Pressable>
 ```
 
-### 11.4 Minimum Touch Target Size
+### 11.4 Minimum Touch Target Size 🟡
 
 **What:** Ensure all interactive elements are at least 44x44 points.
 
@@ -868,7 +879,7 @@ export const appStorage = {
 </Pressable>
 ```
 
-### 11.5 Respect Reduced Motion
+### 11.5 Respect Reduced Motion 🟡
 
 **What:** Check user's motion preferences and reduce/disable animations accordingly.
 
@@ -903,7 +914,7 @@ function CustomAnimation() {
 }
 ```
 
-### 11.6 Group Related Elements
+### 11.6 Group Related Elements 🟢
 
 **What:** Use the accessible prop to group related elements as a single focusable unit.
 
@@ -940,7 +951,7 @@ function CustomAnimation() {
 </Pressable>
 ```
 
-### 11.7 Announce Dynamic Content
+### 11.7 Announce Dynamic Content 🟢
 
 **What:** Use accessibilityLiveRegion to announce content changes.
 
@@ -983,7 +994,7 @@ function CustomAnimation() {
 | `assertive` | Urgent updates (errors, time-sensitive alerts)     |
 | `none`      | Don't announce (default)                           |
 
-### 11.8 Form Accessibility
+### 11.8 Form Accessibility 🟡
 
 **What:** Associate labels with inputs and provide error feedback.
 
@@ -1023,7 +1034,7 @@ function CustomAnimation() {
 
 ## 12. Code Style & Conventions
 
-### 12.1 File Naming
+### 12.1 File Naming 🟡
 
 **What:** Use different naming conventions based on location:
 - **Routes & Screens** (in `/app` and `/src/screens`): kebab-case → `user-profile.tsx`, `user-profile/`
@@ -1053,7 +1064,7 @@ src/components/
   Button.tsx            ✓ PascalCase
 ```
 
-### 12.2 Path Aliases
+### 12.2 Path Aliases 🟢
 
 **What:** Configure tsconfig.json with path aliases and prefer aliases over relative imports.
 
@@ -1077,13 +1088,140 @@ import { Button } from "../../../components/Button";
 import { Button } from "@/components/Button";
 ```
 
-### 12.3 Escape Strings Properly
+### 12.3 Escape Strings Properly 🟡
 
 **What:** Be cautious of unterminated strings. Ensure nested backticks are escaped correctly.
 
 ---
 
-## 13. Library Preferences
+## 13. TypeScript
+
+### 13.1 Never Use `any` Type 🔴
+
+**What:** Never use `any` type. Use `unknown`, proper types, or generics instead.
+
+**Why:** `any` disables TypeScript's type checking entirely, defeating the purpose of using TypeScript. It hides bugs, breaks refactoring tools, and makes code harder to maintain.
+
+```tsx
+// BAD - Disables all type safety
+function processData(data: any) {
+  return data.items.map((item: any) => item.name);
+}
+
+// BAD - Silences errors but doesn't fix the problem
+const response = await fetch(url);
+const data = await response.json() as any;
+
+// GOOD - Use unknown and narrow the type
+function processData(data: unknown) {
+  if (isValidResponse(data)) {
+    return data.items.map((item) => item.name);
+  }
+  throw new Error("Invalid data format");
+}
+
+// GOOD - Define proper types
+interface ApiResponse {
+  items: Array<{ name: string; id: number }>;
+}
+
+const data: ApiResponse = await response.json();
+
+// GOOD - Use generics for flexible typing
+function parseResponse<T>(response: Response): Promise<T> {
+  return response.json();
+}
+
+const data = await parseResponse<ApiResponse>(response);
+```
+
+**Acceptable exceptions:**
+- Third-party library types that genuinely require `any` (rare)
+- Temporary `// @ts-expect-error` with explanation during migration
+
+### 13.2 Avoid Type Assertions When Possible 🟡
+
+**What:** Prefer type guards and proper typing over type assertions (`as`).
+
+**Why:** Type assertions bypass TypeScript's checks. If the runtime value doesn't match the asserted type, you get runtime errors instead of compile-time errors.
+
+```tsx
+// BAD - Assumes shape without validation
+const user = data as User;
+
+// GOOD - Validate at runtime
+function isUser(data: unknown): data is User {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    "name" in data
+  );
+}
+
+if (isUser(data)) {
+  // TypeScript knows data is User here
+  console.log(data.name);
+}
+
+// GOOD - Use Zod for runtime validation
+import { z } from "zod";
+
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+});
+
+type User = z.infer<typeof UserSchema>;
+
+const user = UserSchema.parse(data); // Throws if invalid
+```
+
+### 13.3 Use Strict TypeScript Configuration 🟡
+
+**What:** Enable strict mode and additional safety checks in tsconfig.json.
+
+**Why:** Strict mode catches more bugs at compile time and enforces better practices.
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true
+  }
+}
+```
+
+### 13.4 Prefer `interface` for Object Types 🟢
+
+**What:** Use `interface` for object shapes, `type` for unions, intersections, and primitives.
+
+**Why:** Interfaces provide better error messages, support declaration merging, and are slightly more performant for the compiler.
+
+```tsx
+// GOOD - Interface for object shapes
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// GOOD - Type for unions and complex types
+type Status = "pending" | "active" | "inactive";
+type AsyncState<T> = { status: "loading" } | { status: "success"; data: T } | { status: "error"; error: Error };
+
+// GOOD - Type for function signatures (when needed separately)
+type FetchUser = (id: number) => Promise<User>;
+```
+
+---
+
+## 14. Library Preferences
 
 ### Preferred Libraries
 
@@ -1126,6 +1264,8 @@ import { Button } from "@/components/Button";
 - [ ] Interactive elements have accessibilityLabel
 - [ ] Touch targets are at least 44x44 points
 - [ ] Animations respect useReducedMotion
+- [ ] No `any` types - use `unknown`, proper types, or generics
+- [ ] Type assertions (`as`) validated at runtime
 
 ---
 
